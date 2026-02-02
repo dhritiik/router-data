@@ -165,6 +165,19 @@ public class FaissVectorStore
     }
 
     /// <summary>
+    /// Get metadata by client reference ID
+    /// </summary>
+    public Task<VectorPoint?> GetMetadataByIdAsync(string clientReferenceId)
+    {
+        if (_idToIndex.TryGetValue(clientReferenceId, out var index))
+        {
+            return Task.FromResult<VectorPoint?>(_metadata[index]);
+        }
+        return Task.FromResult<VectorPoint?>(null);
+    }
+
+
+    /// <summary>
     /// Calculate cosine similarity between two normalized vectors
     /// </summary>
     private float CosineSimilarity(float[] a, float[] b)

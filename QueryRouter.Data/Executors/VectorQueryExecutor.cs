@@ -36,8 +36,34 @@ public class VectorQueryExecutor
             
             if (queryEmbedding == null)
             {
-                _logger.LogError("Failed to generate query embedding");
-                return new List<RequirementResult>();
+                _logger.LogWarning("Failed to generate query embedding, falling back to BM25-only search");
+                
+                // Fallback to BM25-only search when embeddings fail
+                var bm25OnlyResults = _bm25Scorer.Search(vectorIntent.SemanticConcept, topK: vectorIntent.TopK);
+                _logger.LogInformation("BM25-only search returned {Count} results", bm25OnlyResults.Count);
+                
+                var results = new List<RequirementResult>();
+                foreach (var (docId, score) in bm25OnlyResults)
+                {
+                    // Get metadata from vector store
+                    var metadata = await _vectorStore.GetMetadataByIdAsync(docId);
+                    if (metadata != null)
+                    {
+                        results.Add(new RequirementResult
+                        {
+                            ClientReferenceId = metadata.ClientReferenceId,
+                            NormalizedText = metadata.NormalizedText,
+                            RawText = metadata.RawText,
+                            ConstraintType = metadata.ConstraintType,
+                            RequirementType = metadata.RequirementType,
+                            Criticality = metadata.Criticality,
+                            Score = (float)score,
+                            Source = "BM25"
+                        });
+                    }
+                }
+                
+                return results;
             }
 
             // Vector search using FAISS
@@ -63,13 +89,13 @@ public class VectorQueryExecutor
             _logger.LogInformation("RRF fusion returned {Count} final results", topResults.Count);
 
             // Convert to RequirementResult
-            var results = new List<RequirementResult>();
+            var finalResults = new List<RequirementResult>();
             foreach (var (id, score) in topResults)
             {
                 var vectorResult = vectorResults.FirstOrDefault(r => r.Id == id);
                 if (vectorResult != null)
                 {
-                    results.Add(new RequirementResult
+                    finalResults.Add(new RequirementResult
                     {
                         ClientReferenceId = vectorResult.Metadata.ClientReferenceId,
                         NormalizedText = vectorResult.Metadata.NormalizedText,
@@ -83,7 +109,7 @@ public class VectorQueryExecutor
                 }
             }
 
-            return results;
+            return finalResults;
         }
         catch (Exception ex)
         {

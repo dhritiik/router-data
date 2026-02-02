@@ -11,6 +11,8 @@ public interface IQueryAnalyzer
     /// Analyzes a user query and determines the appropriate routing
     /// </summary>
     /// <param name="query">The user query to analyze</param>
+    /// <param name="traceId">Optional Langfuse trace ID</param>
+    /// <param name="spanId">Optional parent span ID</param>
     /// <returns>Query routing result with database selection and intent</returns>
-    Task<QueryRoutingResult> AnalyzeAsync(string query);
+    Task<QueryRoutingResult> AnalyzeAsync(string query, string? traceId = null, string? spanId = null);
 }

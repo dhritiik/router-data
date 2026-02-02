@@ -8,23 +8,36 @@ public class QueryAnalyzer : IQueryAnalyzer
 {
     private readonly ILogger<QueryAnalyzer> _logger;
     private readonly AzureOpenAIService _openAIService;
+    private readonly LangfuseService? _langfuse;
 
     public QueryAnalyzer(
         ILogger<QueryAnalyzer> logger,
-        AzureOpenAIService openAIService)
+        AzureOpenAIService openAIService,
+        LangfuseService? langfuse = null)
     {
         _logger = logger;
         _openAIService = openAIService;
+        _langfuse = langfuse;
     }
 
-    public async Task<QueryRoutingResult> AnalyzeAsync(string query)
+    public async Task<QueryRoutingResult> AnalyzeAsync(string query, string? traceId = null, string? parentSpanId = null)
     {
         _logger.LogInformation("Analyzing query with LLM: {Query}", query);
+        
+        var startTime = DateTime.UtcNow;
+        var spanId = Guid.NewGuid().ToString();
 
         try
         {
+            // Log Span Start
+            if (_langfuse != null && !string.IsNullOrEmpty(traceId))
+            {
+                // We don't send start event explicitly in our simple service, we send the whole span at the end
+                // But we need to keep track of start time
+            }
+
             // Use LLM to analyze query intent
-            var llmResponse = await _openAIService.AnalyzeQueryIntentAsync(query);
+            var llmResponse = await _openAIService.AnalyzeQueryIntentAsync(query, traceId, spanId);
 
             // Map LLM response to QueryRoutingResult
             var result = new QueryRoutingResult
@@ -71,12 +84,26 @@ public class QueryAnalyzer : IQueryAnalyzer
                 result.Route, result.Confidence);
             _logger.LogInformation("LLM Reasoning: {Reasoning}", result.Reasoning);
 
+            // Log Span End
+            if (_langfuse != null && !string.IsNullOrEmpty(traceId))
+            {
+                _langfuse.CreateSpan(traceId, spanId, "QueryAnalyzer", startTime, DateTime.UtcNow);
+                _langfuse.Score(traceId, "routing-confidence", result.Confidence);
+            }
+
             return result;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error analyzing query with LLM, falling back to default routing");
             
+            // Log Span End (Error)
+            if (_langfuse != null && !string.IsNullOrEmpty(traceId))
+            {
+                _langfuse.CreateSpan(traceId, spanId, "QueryAnalyzer (Failed)", startTime, DateTime.UtcNow);
+                _langfuse.Score(traceId, "routing-success", 0);
+            }
+
             // Fallback to simple routing if LLM fails
             return FallbackRouting(query);
         }

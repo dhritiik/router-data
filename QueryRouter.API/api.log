@@ -1,0 +1,166 @@
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://localhost:5000
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /Users/dhritikothari/Desktop/router-data/QueryRouter.API
+warn: Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware[3]
+      Failed to determine the https port for redirect.
+info: QueryRouter.Core.Services.AzureOpenAIService[0]
+      Azure OpenAI Service initialized with deployment: gpt-4.1
+info: QueryRouter.Data.Vector.AzureOpenAIEmbeddings[0]
+      Azure OpenAI Embeddings initialized with deployment: text-embedding-3-large
+info: QueryRouter.Data.Graph.Neo4jGraphStore[0]
+      Neo4j driver initialized at bolt://localhost:7687
+info: QueryRouter.Core.Analyzers.QueryAnalyzer[0]
+      Analyzing query with LLM: Find requirements related to money matters
+info: QueryRouter.Core.Services.AzureOpenAIService[0]
+      LLM routing response: {
+        "route": "VECTOR",
+        "confidence": 0.85,
+        "reasoning": "The query uses non-exact language ('money matters') and does not reference any specific SQL columns or relationships. It seeks requirements semantically related to financial concepts, which is best handled by a vector search.",
+        "sqlIntent": null,
+        "vectorIntent": {
+          "semanticConcept": "money matters",
+          "topK": 10
+        },
+        "graphIntent": null
+      }
+info: QueryRouter.Core.Analyzers.QueryAnalyzer[0]
+      Query routed to VECTOR with confidence 0.85
+info: QueryRouter.Core.Analyzers.QueryAnalyzer[0]
+      LLM Reasoning: The query uses non-exact language ('money matters') and does not reference any specific SQL columns or relationships. It seeks requirements semantically related to financial concepts, which is best handled by a vector search.
+info: QueryRouter.Data.Executors.VectorQueryExecutor[0]
+      Executing hybrid vector search for concept: money matters
+warn: QueryRouter.Data.Vector.FaissVectorStore[0]
+      No vectors in store. Returning empty results.
+info: QueryRouter.Data.Executors.VectorQueryExecutor[0]
+      Vector search returned 0 results
+warn: QueryRouter.Data.Vector.BM25Scorer[0]
+      BM25 index is empty. Returning no results.
+info: QueryRouter.Data.Executors.VectorQueryExecutor[0]
+      BM25 search returned 0 results
+info: QueryRouter.Data.Executors.VectorQueryExecutor[0]
+      RRF fusion returned 0 final results
+info: QueryRouter.Core.Analyzers.QueryAnalyzer[0]
+      Analyzing query with LLM: Find requirements related to money matters
+info: QueryRouter.Core.Services.AzureOpenAIService[0]
+      LLM routing response: {
+        "route": "VECTOR",
+        "confidence": 0.85,
+        "reasoning": "The query uses vague, non-exact language ('money matters') that does not directly map to a specific column or value in the SQL schema. It is best handled by semantic search to find requirements discussing financial topics.",
+        "sqlIntent": null,
+        "vectorIntent": {
+          "semanticConcept": "money matters, financial requirements, payments, transactions, finance",
+          "topK": 10
+        },
+        "graphIntent": null
+      }
+info: QueryRouter.Core.Analyzers.QueryAnalyzer[0]
+      Query routed to VECTOR with confidence 0.85
+info: QueryRouter.Core.Analyzers.QueryAnalyzer[0]
+      LLM Reasoning: The query uses vague, non-exact language ('money matters') that does not directly map to a specific column or value in the SQL schema. It is best handled by semantic search to find requirements discussing financial topics.
+info: QueryRouter.Data.Executors.VectorQueryExecutor[0]
+      Executing hybrid vector search for concept: money matters, financial requirements, payments, transactions, finance
+warn: QueryRouter.Data.Vector.FaissVectorStore[0]
+      No vectors in store. Returning empty results.
+info: QueryRouter.Data.Executors.VectorQueryExecutor[0]
+      Vector search returned 0 results
+warn: QueryRouter.Data.Vector.BM25Scorer[0]
+      BM25 index is empty. Returning no results.
+info: QueryRouter.Data.Executors.VectorQueryExecutor[0]
+      BM25 search returned 0 results
+info: QueryRouter.Data.Executors.VectorQueryExecutor[0]
+      RRF fusion returned 0 final results
+info: QueryRouter.Core.Analyzers.QueryAnalyzer[0]
+      Analyzing query with LLM: Find requirements related to money matters
+info: QueryRouter.Core.Services.AzureOpenAIService[0]
+      LLM routing response: {
+        "route": "VECTOR",
+        "confidence": 0.85,
+        "reasoning": "The query uses the vague phrase 'money matters', which does not directly map to any specific column or subcategory in the SQL schema. It is best handled by semantic search to find requirements discussing financial, payment, or monetary topics.",
+        "sqlIntent": null,
+        "vectorIntent": {
+          "semanticConcept": "money matters",
+          "topK": 10
+        },
+        "graphIntent": null
+      }
+info: QueryRouter.Core.Analyzers.QueryAnalyzer[0]
+      Query routed to VECTOR with confidence 0.85
+info: QueryRouter.Core.Analyzers.QueryAnalyzer[0]
+      LLM Reasoning: The query uses the vague phrase 'money matters', which does not directly map to any specific column or subcategory in the SQL schema. It is best handled by semantic search to find requirements discussing financial, payment, or monetary topics.
+info: QueryRouter.Data.Executors.VectorQueryExecutor[0]
+      Executing hybrid vector search for concept: money matters
+warn: QueryRouter.Data.Vector.FaissVectorStore[0]
+      No vectors in store. Returning empty results.
+info: QueryRouter.Data.Executors.VectorQueryExecutor[0]
+      Vector search returned 0 results
+warn: QueryRouter.Data.Vector.BM25Scorer[0]
+      BM25 index is empty. Returning no results.
+info: QueryRouter.Data.Executors.VectorQueryExecutor[0]
+      BM25 search returned 0 results
+info: QueryRouter.Data.Executors.VectorQueryExecutor[0]
+      RRF fusion returned 0 final results
+info: QueryRouter.Core.Analyzers.QueryAnalyzer[0]
+      Analyzing query with LLM: Find requirements related to security
+info: QueryRouter.Core.Services.AzureOpenAIService[0]
+      LLM routing response: {
+        "route": "VECTOR",
+        "confidence": 0.85,
+        "reasoning": "The query uses the phrase 'related to security', which is a semantic concept rather than an exact column filter. The user is likely seeking requirements that are about or mention security, which is best handled by semantic search in the vector database.",
+        "sqlIntent": null,
+        "vectorIntent": {
+          "semanticConcept": "security requirements",
+          "topK": 10
+        },
+        "graphIntent": null
+      }
+info: QueryRouter.Core.Analyzers.QueryAnalyzer[0]
+      Query routed to VECTOR with confidence 0.85
+info: QueryRouter.Core.Analyzers.QueryAnalyzer[0]
+      LLM Reasoning: The query uses the phrase 'related to security', which is a semantic concept rather than an exact column filter. The user is likely seeking requirements that are about or mention security, which is best handled by semantic search in the vector database.
+info: QueryRouter.Data.Executors.VectorQueryExecutor[0]
+      Executing hybrid vector search for concept: security requirements
+warn: QueryRouter.Data.Vector.FaissVectorStore[0]
+      No vectors in store. Returning empty results.
+info: QueryRouter.Data.Executors.VectorQueryExecutor[0]
+      Vector search returned 0 results
+warn: QueryRouter.Data.Vector.BM25Scorer[0]
+      BM25 index is empty. Returning no results.
+info: QueryRouter.Data.Executors.VectorQueryExecutor[0]
+      BM25 search returned 0 results
+info: QueryRouter.Data.Executors.VectorQueryExecutor[0]
+      RRF fusion returned 0 final results
+info: QueryRouter.Core.Analyzers.QueryAnalyzer[0]
+      Analyzing query with LLM: Find requirements related to security
+info: QueryRouter.Core.Services.AzureOpenAIService[0]
+      LLM routing response: {
+        "route": "VECTOR",
+        "confidence": 0.85,
+        "reasoning": "The query uses the phrase 'related to security', which is a semantic concept rather than an exact column filter. The user is likely seeking requirements that are about or similar to the concept of security, which is best handled by a semantic search in the vector database.",
+        "sqlIntent": null,
+        "vectorIntent": {
+          "semanticConcept": "security",
+          "topK": 10
+        },
+        "graphIntent": null
+      }
+info: QueryRouter.Core.Analyzers.QueryAnalyzer[0]
+      Query routed to VECTOR with confidence 0.85
+info: QueryRouter.Core.Analyzers.QueryAnalyzer[0]
+      LLM Reasoning: The query uses the phrase 'related to security', which is a semantic concept rather than an exact column filter. The user is likely seeking requirements that are about or similar to the concept of security, which is best handled by a semantic search in the vector database.
+info: QueryRouter.Data.Executors.VectorQueryExecutor[0]
+      Executing hybrid vector search for concept: security
+warn: QueryRouter.Data.Vector.FaissVectorStore[0]
+      No vectors in store. Returning empty results.
+info: QueryRouter.Data.Executors.VectorQueryExecutor[0]
+      Vector search returned 0 results
+warn: QueryRouter.Data.Vector.BM25Scorer[0]
+      BM25 index is empty. Returning no results.
+info: QueryRouter.Data.Executors.VectorQueryExecutor[0]
+      BM25 search returned 0 results
+info: QueryRouter.Data.Executors.VectorQueryExecutor[0]
+      RRF fusion returned 0 final results

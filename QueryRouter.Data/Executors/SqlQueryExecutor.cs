@@ -25,7 +25,7 @@ public class SqlQueryExecutor
         _schemaProvider = schemaProvider;
     }
 
-    public async Task<List<RequirementResult>> ExecuteAsync(QueryRoutingResult routing, string originalQuery)
+    public async Task<List<RequirementResult>> ExecuteAsync(QueryRoutingResult routing, string originalQuery, string? traceId = null, string? spanId = null)
     {
         try
         {
@@ -46,7 +46,7 @@ public class SqlQueryExecutor
                     _logger.LogInformation("Attempting to generate SQL query using LLM for: {Query}", originalQuery);
                     
                     var schema = _schemaProvider.GetSchemaDescription();
-                    sqlQuery = await _openAIService.GenerateSqlQueryAsync(originalQuery, schema);
+                    sqlQuery = await _openAIService.GenerateSqlQueryAsync(originalQuery, schema, traceId, spanId);
                     
                     // Store generated SQL in routing result
                     routing.GeneratedSql = sqlQuery;

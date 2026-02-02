@@ -14,19 +14,22 @@ public class QueryRouterController : ControllerBase
     private readonly SqlQueryExecutor? _sqlExecutor;
     private readonly VectorQueryExecutor? _vectorExecutor;
     private readonly GraphQueryExecutor? _graphExecutor;
+    private readonly LangfuseService? _langfuse;
 
     public QueryRouterController(
         IQueryAnalyzer queryAnalyzer,
         ILogger<QueryRouterController> logger,
         SqlQueryExecutor? sqlExecutor = null,
         VectorQueryExecutor? vectorExecutor = null,
-        GraphQueryExecutor? graphExecutor = null)
+        GraphQueryExecutor? graphExecutor = null,
+        LangfuseService? langfuse = null)
     {
         _queryAnalyzer = queryAnalyzer;
         _logger = logger;
         _sqlExecutor = sqlExecutor;
         _vectorExecutor = vectorExecutor;
         _graphExecutor = graphExecutor;
+        _langfuse = langfuse;
     }
 
     /// <summary>
@@ -42,9 +45,17 @@ public class QueryRouterController : ControllerBase
             return BadRequest(new { error = "Query cannot be empty" });
         }
 
+        var traceId = Guid.NewGuid().ToString();
+        var traceName = "AnalyzeQuery";
+        
+        if (_langfuse != null)
+        {
+            _langfuse.CreateTrace(traceId, traceName);
+        }
+
         try
         {
-            var result = await _queryAnalyzer.AnalyzeAsync(request.Query);
+            var result = await _queryAnalyzer.AnalyzeAsync(request.Query, traceId);
             return Ok(result);
         }
         catch (Exception ex)
@@ -67,10 +78,18 @@ public class QueryRouterController : ControllerBase
             return BadRequest(new { error = "Query cannot be empty" });
         }
 
+        var traceId = Guid.NewGuid().ToString();
+        var traceName = "ExecuteQuery";
+        
+        if (_langfuse != null)
+        {
+            _langfuse.CreateTrace(traceId, traceName);
+        }
+
         try
         {
             // First, analyze the query
-            var routing = await _queryAnalyzer.AnalyzeAsync(request.Query);
+            var routing = await _queryAnalyzer.AnalyzeAsync(request.Query, traceId);
             
             var results = new List<RequirementResult>();
 
@@ -80,7 +99,12 @@ public class QueryRouterController : ControllerBase
                 case RouteType.SQL:
                     if (_sqlExecutor != null && routing.SqlIntent != null)
                     {
-                        results = await _sqlExecutor.ExecuteAsync(routing, request.Query);
+                        results = await _sqlExecutor.ExecuteAsync(routing, request.Query, traceId);
+                    }
+                    else
+                    {
+                        // Fallback logic if executor is missing?
+                        _logger.LogWarning("SQL route selected but executor or intent missing");
                     }
                     break;
 
@@ -100,9 +124,12 @@ public class QueryRouterController : ControllerBase
 
                 case RouteType.HYBRID:
                     // Execute all applicable queries and merge results
+                    var tasks = new List<Task<List<RequirementResult>>>();
+                    
                     if (_sqlExecutor != null && routing.SqlIntent != null)
                     {
-                        var sqlResults = await _sqlExecutor.ExecuteAsync(routing, request.Query);
+                        // TODO: Parallel execution would be better
+                        var sqlResults = await _sqlExecutor.ExecuteAsync(routing, request.Query, traceId);
                         results.AddRange(sqlResults);
                     }
                     if (_vectorExecutor != null && routing.VectorIntent != null)
@@ -117,12 +144,20 @@ public class QueryRouterController : ControllerBase
                     }
                     
                     // Deduplicate by client reference ID
-                    results = results
-                        .GroupBy(r => r.ClientReferenceId)
-                        .Select(g => g.OrderByDescending(r => r.Score).First())
-                        .OrderByDescending(r => r.Score)
-                        .ToList();
+                    if (results.Any())
+                    {
+                        results = results
+                            .GroupBy(r => r.ClientReferenceId)
+                            .Select(g => g.OrderByDescending(r => r.Score).First())
+                            .OrderByDescending(r => r.Score)
+                            .ToList();
+                    }
                     break;
+            }
+
+            if (_langfuse != null)
+            {
+                _langfuse.Score(traceId, "result-count", results.Count);
             }
 
             return Ok(new QueryExecutionResult

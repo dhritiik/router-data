@@ -33,6 +33,15 @@ public class VectorDataIngestion
             await _vectorStore.InitializeAsync();
             await _bm25Scorer.InitializeAsync();
 
+            // Check if vectors already exist
+            var existingCount = await _vectorStore.GetPointCountAsync();
+            if (existingCount > 0 && existingCount == proposalData.Requirements.Count)
+            {
+                _logger.LogInformation("Vector store already contains {Count} embeddings. Skipping ingestion.", existingCount);
+                _logger.LogInformation("To re-ingest, delete the vector_indexes directory");
+                return true;
+            }
+
             // Prepare texts for embedding and BM25
             var texts = proposalData.Requirements
                 .Select(r => BuildSearchableText(r))

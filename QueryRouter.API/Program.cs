@@ -33,8 +33,28 @@ builder.Services.AddSingleton<DatabaseSchemaProvider>();
 builder.Services.AddScoped<IQueryAnalyzer, QueryAnalyzer>();
 
 // Register database contexts and services
+// Register database contexts and services
 builder.Services.AddDbContext<PosDbContext>(options =>
     options.UseSqlite("Data Source=pos_requirements.db"));
+
+// Register Langfuse
+var langfusePublic = Environment.GetEnvironmentVariable("LANGFUSE_PUBLIC_KEY") ?? "";
+var langfuseSecret = Environment.GetEnvironmentVariable("LANGFUSE_SECRET_KEY") ?? "";
+var langfuseHost = Environment.GetEnvironmentVariable("LANGFUSE_HOST") ?? "https://cloud.langfuse.com";
+
+if (!string.IsNullOrEmpty(langfusePublic))
+{
+    builder.Services.AddSingleton<LangfuseService>(sp => 
+        new LangfuseService(langfusePublic, langfuseSecret, langfuseHost, sp.GetRequiredService<ILogger<LangfuseService>>()));
+}
+else
+{
+    // Register no-op or handle missing keys if critical, for now we effectively skip usage 
+    // by not registering it, but we should register a dummy or handle null in consumers.
+    // Better strategy: Register it but it will just fail to flush if keys are invalid.
+    // Or cleaner: Don't register and make it optional in services.
+    // For simplicity, let's register it if keys exist, otherwise consumers must check availability.
+}
 
 builder.Services.AddSingleton<AzureOpenAIEmbeddings>();
 builder.Services.AddSingleton<FaissVectorStore>();
@@ -58,6 +78,31 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Initialize vector stores
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        
+        logger.LogInformation("Initializing vector store...");
+        var vectorStore = services.GetRequiredService<FaissVectorStore>();
+        await vectorStore.InitializeAsync();
+        
+        logger.LogInformation("Initializing BM25 scorer...");
+        var bm25Scorer = services.GetRequiredService<BM25Scorer>();
+        await bm25Scorer.InitializeAsync();
+        
+        logger.LogInformation("Vector stores initialized successfully");
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while initializing vector stores");
+    }
+}
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())

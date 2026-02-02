@@ -26,10 +26,14 @@ public class SqlDataIngestion
             // Ensure database is created
             await _dbContext.Database.EnsureCreatedAsync();
 
-            // Clear existing data
-            _logger.LogInformation("Clearing existing requirements");
-            _dbContext.Requirements.RemoveRange(_dbContext.Requirements);
-            await _dbContext.SaveChangesAsync();
+            // Check if data already exists
+            var existingCount = await _dbContext.Requirements.CountAsync();
+            if (existingCount > 0)
+            {
+                _logger.LogInformation("SQL database already contains {Count} requirements. Skipping ingestion.", existingCount);
+                _logger.LogInformation("To re-ingest, delete the database file: QueryRouter.API/pos_requirements.db");
+                return true;
+            }
 
             // Convert and insert requirements
             var entities = proposalData.Requirements.Select(r => new RequirementEntity
