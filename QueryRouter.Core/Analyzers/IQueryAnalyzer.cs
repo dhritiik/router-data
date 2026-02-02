@@ -12,5 +12,5 @@ public interface IQueryAnalyzer
     /// </summary>
     /// <param name="query">The user query to analyze</param>
     /// <returns>Query routing result with database selection and intent</returns>
-    Task<QueryRoutingResult> AnalyzeQueryAsync(string query);
+    Task<QueryRoutingResult> AnalyzeAsync(string query);
 }

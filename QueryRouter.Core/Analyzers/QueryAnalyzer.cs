@@ -1,80 +1,142 @@
 using Microsoft.Extensions.Logging;
 using QueryRouter.Core.Models;
-using QueryRouter.Core.Rules;
+using QueryRouter.Core.Services;
 
 namespace QueryRouter.Core.Analyzers;
 
-/// <summary>
-/// Main query analyzer that routes queries to appropriate databases
-/// </summary>
 public class QueryAnalyzer : IQueryAnalyzer
 {
     private readonly ILogger<QueryAnalyzer> _logger;
-    private readonly SqlRoutingRules _sqlRules;
-    private readonly VectorRoutingRules _vectorRules;
-    private readonly GraphRoutingRules _graphRules;
-    private readonly HybridRoutingRules _hybridRules;
+    private readonly AzureOpenAIService _openAIService;
 
-    public QueryAnalyzer(ILogger<QueryAnalyzer> logger)
+    public QueryAnalyzer(
+        ILogger<QueryAnalyzer> logger,
+        AzureOpenAIService openAIService)
     {
         _logger = logger;
-        _sqlRules = new SqlRoutingRules();
-        _vectorRules = new VectorRoutingRules();
-        _graphRules = new GraphRoutingRules();
-        _hybridRules = new HybridRoutingRules();
+        _openAIService = openAIService;
     }
 
-    public async Task<QueryRoutingResult> AnalyzeQueryAsync(string query)
+    public async Task<QueryRoutingResult> AnalyzeAsync(string query)
     {
-        if (string.IsNullOrWhiteSpace(query))
+        _logger.LogInformation("Analyzing query with LLM: {Query}", query);
+
+        try
         {
-            throw new ArgumentException("Query cannot be null or empty", nameof(query));
+            // Use LLM to analyze query intent
+            var llmResponse = await _openAIService.AnalyzeQueryIntentAsync(query);
+
+            // Map LLM response to QueryRoutingResult
+            var result = new QueryRoutingResult
+            {
+                Route = ParseRoute(llmResponse.Route),
+                Confidence = llmResponse.Confidence,
+                Reasoning = llmResponse.Reasoning,
+                LlmReasoning = llmResponse.Reasoning
+            };
+
+            // Map SQL intent
+            if (llmResponse.SqlIntent != null)
+            {
+                result.SqlIntent = new SqlIntent
+                {
+                    Filters = llmResponse.SqlIntent.Filters,
+                    Aggregations = llmResponse.SqlIntent.Aggregations,
+                    IsLlmGenerated = true
+                };
+            }
+
+            // Map Vector intent
+            if (llmResponse.VectorIntent != null)
+            {
+                result.VectorIntent = new VectorIntent
+                {
+                    SemanticConcept = llmResponse.VectorIntent.SemanticConcept,
+                    TopK = llmResponse.VectorIntent.TopK
+                };
+            }
+
+            // Map Graph intent
+            if (llmResponse.GraphIntent != null)
+            {
+                result.GraphIntent = new GraphIntent
+                {
+                    StartNode = llmResponse.GraphIntent.StartNode,
+                    Relationship = llmResponse.GraphIntent.Relationship,
+                    TargetNode = llmResponse.GraphIntent.TargetNode
+                };
+            }
+
+            _logger.LogInformation("Query routed to {Route} with confidence {Confidence}", 
+                result.Route, result.Confidence);
+            _logger.LogInformation("LLM Reasoning: {Reasoning}", result.Reasoning);
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error analyzing query with LLM, falling back to default routing");
+            
+            // Fallback to simple routing if LLM fails
+            return FallbackRouting(query);
+        }
+    }
+
+    private RouteType ParseRoute(string routeString)
+    {
+        return routeString.ToUpper() switch
+        {
+            "SQL" => RouteType.SQL,
+            "VECTOR" => RouteType.VECTOR,
+            "GRAPH" => RouteType.GRAPH,
+            "HYBRID" => RouteType.HYBRID,
+            _ => RouteType.VECTOR // Default to vector search
+        };
+    }
+
+    private QueryRoutingResult FallbackRouting(string query)
+    {
+        _logger.LogWarning("Using fallback routing for query: {Query}", query);
+
+        var lowerQuery = query.ToLower();
+
+        // Simple keyword-based fallback
+        if (lowerQuery.Contains("count") || lowerQuery.Contains("how many") || lowerQuery.Contains("list all"))
+        {
+            return new QueryRoutingResult
+            {
+                Route = RouteType.SQL,
+                Confidence = 0.6,
+                Reasoning = "Fallback: Query contains aggregation keywords",
+                SqlIntent = new SqlIntent
+                {
+                    Aggregations = new List<string> { "COUNT" }
+                }
+            };
         }
 
-        _logger.LogInformation("Analyzing query: {Query}", query);
-
-        var normalizedQuery = query.ToLowerInvariant().Trim();
-
-        // Check for hybrid patterns first (most complex)
-        var hybridResult = _hybridRules.Analyze(normalizedQuery);
-        if (hybridResult != null)
+        if (lowerQuery.Contains("connected") || lowerQuery.Contains("related to") || lowerQuery.Contains("relationship"))
         {
-            _logger.LogInformation("Query routed to HYBRID with confidence {Confidence}", hybridResult.Confidence);
-            return hybridResult;
+            return new QueryRoutingResult
+            {
+                Route = RouteType.GRAPH,
+                Confidence = 0.6,
+                Reasoning = "Fallback: Query contains relationship keywords",
+                GraphIntent = new GraphIntent()
+            };
         }
 
-        // Check for graph patterns (relationship-based)
-        var graphResult = _graphRules.Analyze(normalizedQuery);
-        if (graphResult != null)
-        {
-            _logger.LogInformation("Query routed to GRAPH with confidence {Confidence}", graphResult.Confidence);
-            return graphResult;
-        }
-
-        // Check for vector patterns (semantic similarity)
-        var vectorResult = _vectorRules.Analyze(normalizedQuery);
-        if (vectorResult != null)
-        {
-            _logger.LogInformation("Query routed to VECTOR with confidence {Confidence}", vectorResult.Confidence);
-            return vectorResult;
-        }
-
-        // Default to SQL for structured queries
-        var sqlResult = _sqlRules.Analyze(normalizedQuery);
-        if (sqlResult != null)
-        {
-            _logger.LogInformation("Query routed to SQL with confidence {Confidence}", sqlResult.Confidence);
-            return sqlResult;
-        }
-
-        // Fallback with low confidence
-        _logger.LogWarning("Unable to confidently route query, defaulting to SQL");
+        // Default to vector search
         return new QueryRoutingResult
         {
-            Route = RouteType.SQL,
-            Confidence = 0.3,
-            Reasoning = "Unable to determine specific routing pattern, defaulting to SQL for structured retrieval",
-            SqlIntent = new SqlIntent()
+            Route = RouteType.VECTOR,
+            Confidence = 0.5,
+            Reasoning = "Fallback: Default to semantic search",
+            VectorIntent = new VectorIntent
+            {
+                SemanticConcept = query,
+                TopK = 10
+            }
         };
     }
 }

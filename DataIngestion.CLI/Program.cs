@@ -42,7 +42,8 @@ class Program
 
         // Services
         services.AddSingleton<AzureOpenAIEmbeddings>();
-        services.AddSingleton<QdrantVectorStore>();
+        services.AddSingleton<FaissVectorStore>();
+        services.AddSingleton<BM25Scorer>();
         services.AddSingleton<Neo4jGraphStore>();
         services.AddScoped<JsonLoader>();
         services.AddScoped<SqlDataIngestion>();
@@ -152,7 +153,7 @@ class Program
         
         if (success)
         {
-            logger.LogInformation("✅ Vector: Embeddings generated and stored in Qdrant");
+            logger.LogInformation("✅ Vector: Embeddings generated and stored in FAISS");
         }
         
         return success;

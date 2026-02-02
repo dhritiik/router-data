@@ -44,7 +44,7 @@ public class QueryRouterController : ControllerBase
 
         try
         {
-            var result = await _queryAnalyzer.AnalyzeQueryAsync(request.Query);
+            var result = await _queryAnalyzer.AnalyzeAsync(request.Query);
             return Ok(result);
         }
         catch (Exception ex)
@@ -70,7 +70,7 @@ public class QueryRouterController : ControllerBase
         try
         {
             // First, analyze the query
-            var routing = await _queryAnalyzer.AnalyzeQueryAsync(request.Query);
+            var routing = await _queryAnalyzer.AnalyzeAsync(request.Query);
             
             var results = new List<RequirementResult>();
 
@@ -80,7 +80,7 @@ public class QueryRouterController : ControllerBase
                 case RouteType.SQL:
                     if (_sqlExecutor != null && routing.SqlIntent != null)
                     {
-                        results = await _sqlExecutor.ExecuteAsync(routing.SqlIntent);
+                        results = await _sqlExecutor.ExecuteAsync(routing, request.Query);
                     }
                     break;
 
@@ -102,7 +102,7 @@ public class QueryRouterController : ControllerBase
                     // Execute all applicable queries and merge results
                     if (_sqlExecutor != null && routing.SqlIntent != null)
                     {
-                        var sqlResults = await _sqlExecutor.ExecuteAsync(routing.SqlIntent);
+                        var sqlResults = await _sqlExecutor.ExecuteAsync(routing, request.Query);
                         results.AddRange(sqlResults);
                     }
                     if (_vectorExecutor != null && routing.VectorIntent != null)

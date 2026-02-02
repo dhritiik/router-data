@@ -1,5 +1,6 @@
 using Azure;
 using Azure.AI.OpenAI;
+using OpenAI.Embeddings;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -8,7 +9,7 @@ namespace QueryRouter.Data.Vector;
 public class AzureOpenAIEmbeddings
 {
     private readonly ILogger<AzureOpenAIEmbeddings> _logger;
-    private readonly OpenAIClient _client;
+    private readonly AzureOpenAIClient _client;
     private readonly string _deploymentName;
 
     public AzureOpenAIEmbeddings(ILogger<AzureOpenAIEmbeddings> logger, IConfiguration configuration)
@@ -22,7 +23,7 @@ public class AzureOpenAIEmbeddings
         _deploymentName = configuration["AZURE_OPENAI_EMB_DEPLOYMENT"] 
             ?? throw new InvalidOperationException("AZURE_OPENAI_EMB_DEPLOYMENT not configured");
 
-        _client = new OpenAIClient(new Uri(endpoint), new AzureKeyCredential(apiKey));
+        _client = new AzureOpenAIClient(new Uri(endpoint), new AzureKeyCredential(apiKey));
         
         _logger.LogInformation("Azure OpenAI Embeddings initialized with deployment: {Deployment}", _deploymentName);
     }
@@ -31,10 +32,10 @@ public class AzureOpenAIEmbeddings
     {
         try
         {
-            var embeddingsOptions = new EmbeddingsOptions(_deploymentName, new List<string> { text });
-            var response = await _client.GetEmbeddingsAsync(embeddingsOptions);
+            var embeddingClient = _client.GetEmbeddingClient(_deploymentName);
+            var response = await embeddingClient.GenerateEmbeddingAsync(text);
             
-            var embedding = response.Value.Data[0].Embedding.ToArray();
+            var embedding = response.Value.ToFloats().ToArray();
             return embedding;
         }
         catch (Exception ex)
@@ -50,18 +51,19 @@ public class AzureOpenAIEmbeddings
         
         _logger.LogInformation("Generating embeddings for {Count} texts in batches of {BatchSize}", texts.Count, batchSize);
 
+        var embeddingClient = _client.GetEmbeddingClient(_deploymentName);
+
         for (int i = 0; i < texts.Count; i += batchSize)
         {
             var batch = texts.Skip(i).Take(batchSize).ToList();
             
             try
             {
-                var embeddingsOptions = new EmbeddingsOptions(_deploymentName, batch);
-                var response = await _client.GetEmbeddingsAsync(embeddingsOptions);
+                var response = await embeddingClient.GenerateEmbeddingsAsync(batch);
                 
-                foreach (var item in response.Value.Data)
+                foreach (var item in response.Value)
                 {
-                    embeddings.Add(item.Embedding.ToArray());
+                    embeddings.Add(item.ToFloats().ToArray());
                 }
                 
                 _logger.LogInformation("Generated embeddings for batch {Current}/{Total}", 

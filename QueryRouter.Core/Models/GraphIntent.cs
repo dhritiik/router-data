@@ -6,6 +6,8 @@ namespace QueryRouter.Core.Models;
 public class GraphIntent
 {
     public string StartNode { get; set; } = string.Empty;
+    public string Relationship { get; set; } = string.Empty;
+    public string TargetNode { get; set; } = string.Empty;
     public List<string> RelationshipTypes { get; set; } = new();
     public int Depth { get; set; } = 1;
 }

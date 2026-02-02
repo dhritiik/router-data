@@ -50,3 +50,13 @@ artifacts/
 
 # macOS
 .DS_Store
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# Vector indexes (regenerate on each machine)
+**/vector_indexes/
+*.bin
+bm25_index.json

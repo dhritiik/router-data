@@ -8,4 +8,8 @@ public class SqlIntent
     public List<string> Filters { get; set; } = new();
     public List<string> Joins { get; set; } = new();
     public List<string> Aggregations { get; set; } = new();
+    
+    public bool IsLlmGenerated { get; set; }
+    
+    public string GeneratedQuery { get; set; } = string.Empty;
 }

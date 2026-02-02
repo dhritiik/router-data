@@ -24,4 +24,10 @@ public class QueryRoutingResult
 
     [JsonPropertyName("graphIntent")]
     public GraphIntent? GraphIntent { get; set; }
+
+    [JsonPropertyName("llmReasoning")]
+    public string LlmReasoning { get; set; } = string.Empty;
+
+    [JsonPropertyName("generatedSql")]
+    public string GeneratedSql { get; set; } = string.Empty;
 }

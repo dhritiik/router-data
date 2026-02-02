@@ -27,7 +27,9 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// Register query analyzer
+// Register query analyzer and LLM services
+builder.Services.AddSingleton<QueryRouter.Core.Services.AzureOpenAIService>();
+builder.Services.AddSingleton<DatabaseSchemaProvider>();
 builder.Services.AddScoped<IQueryAnalyzer, QueryAnalyzer>();
 
 // Register database contexts and services
@@ -35,7 +37,8 @@ builder.Services.AddDbContext<PosDbContext>(options =>
     options.UseSqlite("Data Source=pos_requirements.db"));
 
 builder.Services.AddSingleton<AzureOpenAIEmbeddings>();
-builder.Services.AddSingleton<QdrantVectorStore>();
+builder.Services.AddSingleton<FaissVectorStore>();
+builder.Services.AddSingleton<BM25Scorer>();
 builder.Services.AddSingleton<Neo4jGraphStore>();
 
 // Register query executors
